@@ -1,7 +1,14 @@
 package main
 
-import "fmt"
+import (
+    "fmt"
+    happening "github.com/oleiade/happening"
+)
 
 func main() {
-    fmt.Println("Hello world!")
+    // Parse command line arguments
+    cmdline := &happening.Cmdline{}
+    cmdline.ParseArgs()
+
+    fmt.Println(cmdline)
 }
