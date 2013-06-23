@@ -1,7 +1,6 @@
 package happening
 
 import (
-    "fmt"
     "net"
     "sync"
 )
@@ -20,7 +19,6 @@ func NewClientStore(channel chan bool, group *sync.WaitGroup) *ClientStore {
     }
 }
 
-
 func (store *ClientStore) Run(netProto string, addr string) {
     ln, err := net.Listen(netProto, addr)
     if err != nil {
@@ -28,21 +26,24 @@ func (store *ClientStore) Run(netProto string, addr string) {
     }
 
     for {
-        // If channel has been closed, set
-        // sync as done, and goroutine ready to be
-        // collected
-        _, ok := <- store.Channel
-        if !ok {
-            store.group.Done()
-            return
-        }
+        select {
+            // If channel has been closed, or a shutdown
+            // signal has been sent, set sync as done
+            // and goroutine ready to be collected
+            case _ = <- store.Channel:
+                store.group.Done()
+                return
+            // Otherwise, process the client connection
+            default:
+                conn, err := ln.Accept()
+                if err != nil {
+                    continue
+                }
 
-        // Else, process the client connection
-        conn, err := ln.Accept()
-        if err != nil {
-            continue
+                _, err = conn.Write([]byte("Ground control reiceived your message major Tom"))
+                if err != nil {
+                    return
+                }
         }
-
-        fmt.Println(conn)
     }
 }

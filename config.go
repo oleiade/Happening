@@ -6,12 +6,18 @@ import (
 )
 
 type Config struct {
+    Daemon      bool   `ini:"daemonize"`
+    LogFile     string `ini:"log_file"`
+    LogLevel    string `ini:"log_level"`
     Pidfile     string `ini:"pidfile"`
 }
 
 
 func NewConfig() *Config {
     return &Config{
+        Daemon: false,
+        LogLevel: "INFO",
+        LogFile: "/var/log/happening.log",
         Pidfile: "/var/run/happening.pid",
     }
 }
@@ -56,3 +62,16 @@ func loadConfigFromFile(path string, obj interface{}, section string) error {
 
     return nil
 }
+
+// A bit verbose, and not that dry, but could not find
+// more clever for now.
+func (c *Config) UpdateFromCmdline(cmdline *Cmdline) {
+    if *cmdline.DaemonMode != DEFAULT_DAEMON_MODE {
+        c.Daemon = *cmdline.DaemonMode
+    }
+
+    if *cmdline.LogLevel != DEFAULT_LOG_LEVEL {
+        c.LogLevel = *cmdline.LogLevel
+    }
+}
+
