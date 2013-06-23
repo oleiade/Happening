@@ -1,13 +1,13 @@
 package happening
 
 // import (
-    // "net"
+// "net"
 // )
 
 type Server struct {
-    ClientStore
+	ClientStore
 }
 
 func ListenAndAcknowledge() error {
-    return nil
+	return nil
 }
