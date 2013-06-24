@@ -1,16 +1,18 @@
 package main
 
 import (
+    "os"
+    "fmt"
     "log"
-    "sync"
+    "time"
+    "syscall"
+    "os/signal"
     l4g "github.com/alecthomas/log4go"
     happening "github.com/oleiade/happening"
 )
 
 func main() {
     var err             error
-    var wg              sync.WaitGroup
-    var store_channel   chan bool
 
     l4g.Info("Happening started")
 
@@ -33,11 +35,26 @@ func main() {
         log.Fatal(err)
     }
 
-    l4g.Info("Happening clients registration routine started")
     // Launch client store listener routine
-    wg.Add(1)
-    client_store := happening.NewClientStore(store_channel, &wg)
-    client_store.Run(*cmdline.Transport, *cmdline.ClientsPort)
+    l4g.Info("Happening clients registration routine started")
+    client_store := happening.NewClientStore()
+    go client_store.Serve(*cmdline.Transport, *cmdline.ClientsPort)
 
     l4g.Info("Hapening events listener routine started")
+
+    // Handle SIGINT and SIGTERM.
+    ch := make(chan os.Signal)
+    signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
+    go func() {
+        for sig := range ch {
+            l4g.Info(fmt.Sprintf("%s received, stopping the happening", sig))
+            client_store.Stop()
+            l4g.Info("Client store stopped")
+            os.Exit(1)
+        }
+    }()
+
+    for {
+        time.Sleep(100)
+    }
 }
