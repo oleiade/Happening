@@ -4,7 +4,6 @@ import (
     "os"
     "fmt"
     "log"
-    "time"
     "syscall"
     "os/signal"
     l4g "github.com/alecthomas/log4go"
@@ -35,10 +34,12 @@ func main() {
         log.Fatal(err)
     }
 
-    // Launch client store listener routine
-    l4g.Info("Happening clients registration routine started")
+    // build client store
     client_store := happening.NewClientStore()
-    go client_store.Serve()
+    client_store.InitSocket(*cmdline.Host, *cmdline.ClientsPort)
+
+    // build server
+    server := happening.NewServer(client_store)
 
     l4g.Info("Hapening events listener routine started")
 
@@ -54,7 +55,5 @@ func main() {
         }
     }()
 
-    for {
-        time.Sleep(100)
-    }
+    server.Run()
 }
