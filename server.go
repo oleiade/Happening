@@ -1,13 +1,48 @@
 package happening
 
-// import (
-// "net"
-// )
+import (
+    l4g "github.com/alecthomas/log4go"
+    "os"
+    "os/signal"
+    "syscall"
+)
 
+// Server implements the Service interface and exposes the Facteur
+// different services.
 type Server struct {
-	ClientStore
+    Service
+    Store        *ClientStore
+}
+
+// Server initializes a new Server instance
+func NewServer(store *ClientStore) *Server {
+    return &Server{
+        Service:      *NewService("Server"),
+        Store:        store,
+    }
+}
+
+// Run launches the server's services and listens for SIGINT
+// and SIGTERM signals to gracefully them on receive
+func (s *Server) Run() error {
+    defer s.waitGroup.Done()
+
+    // Handle SIGINT and SIGTERM signals for gracefull shutdown sake.
+    ch := make(chan os.Signal)
+    signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
+    go func() {
+        for sig := range ch {
+            l4g.Logf(l4g.INFO, "[%s.Run] %s received, stopping the happening", s.name, sig)
+            s.Store.NetworkService.Stop()
+            os.Exit(1)
+        }
+    }()
+
+    s.waitGroup.Add(2)
+    go s.Store.Serve()
+    return nil
 }
 
 func ListenAndAcknowledge() error {
-	return nil
+    return nil
 }
