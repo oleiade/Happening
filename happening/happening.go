@@ -38,7 +38,7 @@ func main() {
     // Launch client store listener routine
     l4g.Info("Happening clients registration routine started")
     client_store := happening.NewClientStore()
-    go client_store.Serve(*cmdline.Transport, *cmdline.ClientsPort)
+    go client_store.Serve()
 
     l4g.Info("Hapening events listener routine started")
 
