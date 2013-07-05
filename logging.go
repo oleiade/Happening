@@ -1,8 +1,11 @@
 package happening
 
 import (
+	"errors"
+	"fmt"
 	l4g "github.com/alecthomas/log4go"
 	"os"
+	"path/filepath"
 )
 
 // Log levels binding
@@ -21,16 +24,16 @@ var LogLevels = map[string]l4g.Level{
 // SetupLogger function ensures logging file exists, and
 // is writable, and sets up a log4go filter accordingly
 func SetupFileLogger(logger_name string, log_level string, log_file string) error {
-	// Check file exists or return the error
-	_, err := os.Stat(log_file)
+	dir := filepath.Dir(log_file)
+	_, err := os.Stat(dir)
 	if err != nil {
-		return err
+		return errors.New(fmt.Sprintf("[ERROR] Facteur can't open logging directory for writing. Reason: '%s'", err))
 	}
 
 	// check file permissions are correct
-	_, err = os.OpenFile(log_file, os.O_WRONLY, 0400)
+	_, err = os.Create(log_file)
 	if err != nil {
-		return err
+		return errors.New(fmt.Sprintf("[ERROR] Make sure %s is writable to the user launching facteur", dir))
 	}
 
 	l4g.AddFilter(logger_name,
