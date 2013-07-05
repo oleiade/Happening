@@ -3,7 +3,7 @@ package happening
 
 // Queue is a basic FIFO queue based on a circular list that resizes as needed.
 type Queue struct {
-    nodes []*Event
+    nodes []interface{}
     size  int
     head  int
     tail  int
@@ -13,15 +13,15 @@ type Queue struct {
 // NewQueue returns a new queue with the given initial size.
 func NewQueue(size int) *Queue {
     return &Queue{
-        nodes: make([]*Event, size),
+        nodes: make([]interface{}, size),
         size:  size,
     }
 }
 
 // Push adds a node to the queue.
-func (q *Queue) Push(n *Event) {
+func (q *Queue) Push(n interface{}) {
     if q.head == q.tail && q.count > 0 {
-        nodes := make([]*Event, len(q.nodes) + q.size)
+        nodes := make([]interface{}, len(q.nodes) + q.size)
         copy(nodes, q.nodes[q.head:])
         copy(nodes[len(q.nodes) - q.head:], q.nodes[:q.head])
         q.head = 0
@@ -34,7 +34,7 @@ func (q *Queue) Push(n *Event) {
 }
 
 // Pop removes and returns a node from the queue in first to last order.
-func (q *Queue) Pop() *Event {
+func (q *Queue) Pop() interface{} {
     if q.count == 0 {
         return nil
     }
