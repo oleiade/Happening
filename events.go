@@ -4,27 +4,23 @@ import (
     "bytes"
     "errors"
     "fmt"
-    l4g "github.com/alecthomas/log4go"
     "net"
-    "strconv"
     "strings"
+    "strconv"
     "time"
+    l4g "github.com/alecthomas/log4go"
 )
 
 // Event represents a event sent by the source
 type Event struct {
-    Timestamp    int
-    Type         string
-    Emitter      string
-    Weight       string
-    raw          string
+    raw         string
+
+    From        string
+    SentOn      int64
+    ReceivedOn  int64
+    Type        string
 }
 
-// EventsHandler is a NetworkService implementation which
-// exposes a PriorityQueue to store incoming events,
-// a Buffer to bufferize events flow socket input,
-// and can notify other services listening on it's EventsChannel
-// of events received and ready to process.
 type EventsHandler struct {
     NetworkService
     Queue         *Queue
@@ -33,23 +29,21 @@ type EventsHandler struct {
 }
 
 // NewEventsHandler initializes an EventsHandler.
-// Note that it calls the heap interface Init method
-// over PriorityQueue so you won't have to do it later.
 func NewEventsHandler() *EventsHandler {
     return &EventsHandler{
         NetworkService: *NewNetworkService("EventsHandler"),
-        Queue:          &Queue{},
+        Queue:          NewQueue(EVENTS_QUEUE_SIZE),
         EventsChannel:  make(chan *Event),
     }
 }
 
 // NewEvent initializes an event from it's component
-func NewEvent(ts int, typ string, emitter string, weight string) *Event {
+func NewEvent(from string, sent_on int64, received_on int64, event_type string) *Event {
     return &Event{
-        Timestamp: ts,
-        Type: typ,
-        Emitter: emitter,
-        Weight: weight,
+        From: from,
+        SentOn: sent_on,
+        ReceivedOn: received_on,
+        Type: event_type,
     }
 }
 
@@ -73,23 +67,19 @@ func (e *Event) FromRaw(raw string) error {
     e.raw = raw + MSG_DELIMITER // Keep track of the raw version with MSG_DELIMITER
     parts := strings.Split(strings.Trim(raw, MSG_DELIMITER), string(EVENT_PARAMS_SEPARATOR))
 
-    if len(parts) >= 2 {
-        // Set up event sequence id or fail
-        ts, err := strconv.Atoi(parts[0])
+    if len(parts) == 3 {
+        e.From = parts[0]
+        e.ReceivedOn = time.Now().Unix()
+        e.Type = parts[2]
+
+        sent_on, err := strconv.Atoi(parts[1])
         if err != nil {
-            return errors.New(fmt.Sprintf("[%s.FromRaw] Can't convert %s to int", "Event", parts[0]))
+            return errors.New(fmt.Sprintf("[Event.FromRaw] Couldn't parse timestamp: %s", err))
+        } else {
+            e.SentOn = int64(sent_on)
         }
-
-        e.Timestamp = ts
-        e.Type = parts[1]
-
-        if len(parts) >= 3 {
-            e.Emitter = parts[2]
-        }
-
-        if len(parts) >= 4 {
-            e.Weight = parts[3]
-        }
+    } else {
+        return errors.New(fmt.Sprintf("[%s.FromRaw] Incomplete event received: %s", "Event", e.raw))
     }
 
     return nil
@@ -107,7 +97,6 @@ func (m *EventsHandler) Serve() {
     // stream processing goroutines state
     source_state := make(chan bool)
     events_state := make(chan bool)
-
     new_sources := make(chan *net.TCPConn)
     m.waitGroup.Add(1)
     go m.HandleConnexion(source_state, new_sources)
@@ -210,13 +199,13 @@ func (m *EventsHandler) HandleEvents(events_state chan bool, source *net.TCPConn
             // MSG_DELIMITER, strings.Split will return an empty string
             // elem after it, so let's remove it.
             if incomplete {
-                m.Buffer = []byte(items[len(items)-1])
-                items = items[:len(items)-1]
+                m.Buffer = []byte(items[len(items) - 1])
+                items = items[:len(items) - 1]
             } else if backslash_ended {
-                items = items[:len(items)-1]
+                items = items[:len(items) - 1]
             }
 
-            m.PushEventsToQueue(items)
+            go m.PushEventsToQueue(items)
         }
     }
 }
@@ -224,14 +213,14 @@ func (m *EventsHandler) HandleEvents(events_state chan bool, source *net.TCPConn
 // PushEventsToQueue adds a list of Event instances to
 // the EventsHandler PriorityQueue.
 func (m *EventsHandler) PushEventsToQueue(events []string) {
-    for _, item := range events {
-        event, err := NewEventFromRaw(item)
+    for _, event := range events {
+        event, err := NewEventFromRaw(event)
         if err != nil {
             l4g.Error(fmt.Sprintf("[%s.PushEventsToQueue] %s", m.name, err))
             continue
         }
 
-        l4g.Info(fmt.Sprintf("[%s.PushEventsToQueue] %.2d:%q inserted in queue", m.name, event.Weight, event.raw))
+        l4g.Info(fmt.Sprintf("[%s.PushEventsToQueue] %s inserted in queue", m.name, event))
         m.Queue.Push(event)
 
         // Send event in events channel for listener

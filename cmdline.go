@@ -9,7 +9,6 @@ type Cmdline struct {
 	LogFile     *string
 	LogLevel    *string
 	Host        *string
-	ClientsPort *string
 	EventsPort  *string
 }
 
@@ -32,9 +31,6 @@ func (c *Cmdline) ParseArgs() {
 	c.Host = flag.String("host",
 		DEFAULT_HOST,
 		"Sets the host to bind happening sockets to")
-	c.ClientsPort = flag.String("clients-port",
-		DEFAULT_CLIENTS_PORT,
-		"Port to be used for clients registration")
 	c.EventsPort = flag.String("events-port",
 		DEFAULT_EVENTS_PORT,
 		"Port to be used for events registration")

@@ -11,14 +11,14 @@ import (
 // different services.
 type Server struct {
     Service
-    Store        *ClientStore
+    EventsHandler        *EventsHandler
 }
 
 // Server initializes a new Server instance
-func NewServer(store *ClientStore) *Server {
+func NewServer(handler *EventsHandler) *Server {
     return &Server{
-        Service:      *NewService("Server"),
-        Store:        store,
+        Service:        *NewService("Server"),
+        EventsHandler:  handler,
     }
 }
 
@@ -33,13 +33,13 @@ func (s *Server) Run() error {
     go func() {
         for sig := range ch {
             l4g.Logf(l4g.INFO, "[%s.Run] %s received, stopping the happening", s.name, sig)
-            s.Store.NetworkService.Stop()
+            s.EventsHandler.NetworkService.Stop()
             os.Exit(1)
         }
     }()
 
     s.waitGroup.Add(2)
-    go s.Store.Serve()
+    s.EventsHandler.Serve()
     return nil
 }
 

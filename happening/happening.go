@@ -35,11 +35,11 @@ func main() {
     }
 
     // build client store
-    client_store := happening.NewClientStore()
-    client_store.InitSocket(*cmdline.Host, *cmdline.ClientsPort)
+    events_handler := happening.NewEventsHandler()
+    events_handler.InitSocket(*cmdline.Host, *cmdline.EventsPort)
 
     // build server
-    server := happening.NewServer(client_store)
+    server := happening.NewServer(events_handler)
 
     l4g.Info("Hapening events listener routine started")
 
@@ -49,8 +49,7 @@ func main() {
     go func() {
         for sig := range ch {
             l4g.Info(fmt.Sprintf("%s received, stopping the happening", sig))
-            client_store.Stop()
-            l4g.Info("Client store stopped")
+            server.Stop()
             os.Exit(1)
         }
     }()
