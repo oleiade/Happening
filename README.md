@@ -1,4 +1,5 @@
-# Happening
+![Happening](https://dl.dropboxusercontent.com/u/2497327/happening_logo.svg)
+
 
 **Project under heavy development, not yet usable**
 
