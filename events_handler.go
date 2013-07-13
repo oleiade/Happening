@@ -32,60 +32,25 @@ func NewEventsHandler() *EventsHandler {
 func (m *EventsHandler) Serve() {
     defer m.waitGroup.Done()
     l4g.Info("Events source ready for the flow")
-
-    // Channels dedicated to handle the sources and events
-    // stream processing goroutines state
-    source_state := make(chan bool)
     events_state := make(chan bool)
-    new_sources := make(chan *net.TCPConn)
-    m.waitGroup.Add(1)
-    go m.HandleConnexion(source_state, new_sources)
 
     for {
         select {
         // If channel has been closed, or a shutdown
         // signal has been sent, set sync as done
         // and goroutine ready to be collected
-        case <-m.ch:
-            close(source_state)
+        case <- m.ch:
+            close(m.ConnexionsLifeline)
             close(events_state)
             return
         // Otherwise, process the events source connection and events
-        case new_source := <-new_sources:
+        case new_source := <- m.IncomingConnexions:
             m.waitGroup.Add(1)
             go m.HandleEvents(events_state, new_source)
         }
     }
 }
 
-// HandleConnexion should be used as a long-running goroutine to listen
-// on EventsHandler socket for new event source connexions.
-// Each new connexion will be sent back to HandleConnexion caller through
-// sources channel.
-// Anytime HandleConnexion can be stoppped by closing it's state channel.
-func (m *EventsHandler) HandleConnexion(state chan bool, sources chan *net.TCPConn) {
-    defer m.waitGroup.Done()
-
-    for {
-        select {
-        case <-state:
-            return
-        default:
-            // Awainting for the events source to connect
-            m.Socket.SetDeadline(time.Now().Add(time.Duration(EVENT_REG_CONN_TIMEOUT) * time.Second))
-            source, err := m.Socket.AcceptTCP()
-            if err != nil {
-                if opErr, ok := err.(*net.OpError); ok && opErr.Timeout() {
-                    continue
-                }
-                l4g.Error(fmt.Sprintf("[%s.HandleConnexion] %s", m.name, err))
-                return
-            }
-
-            sources <- source
-        }
-    }
-}
 
 // HandleEvents should be run as a long-running goroutine to listen
 // on the EventsHandler source and process incoming events.

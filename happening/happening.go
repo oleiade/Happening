@@ -36,7 +36,7 @@ func main() {
 
     // build client store
     events_handler := happening.NewEventsHandler()
-    events_handler.InitSocket(*cmdline.Host, *cmdline.EventsPort)
+    events_handler.Start(*cmdline.Host, *cmdline.EventsPort)
 
     // build server
     server := happening.NewServer(events_handler)
