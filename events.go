@@ -1,62 +1,62 @@
 package happening
 
 import (
-    "bytes"
-    "errors"
-    "fmt"
-    "net"
-    "strings"
-    "strconv"
-    "time"
-    l4g "github.com/alecthomas/log4go"
+	"bytes"
+	"errors"
+	"fmt"
+	l4g "github.com/alecthomas/log4go"
+	"net"
+	"strconv"
+	"strings"
+	"time"
 )
 
 // Event represents a event sent by the source
 type Event struct {
-    raw         string
+	raw string
 
-    From        string
-    SentOn      int64
-    ReceivedOn  int64
-    Type        string
+	From       string
+	SentOn     int64
+	ReceivedOn int64
+	Type       string
 }
 
 type EventsHandler struct {
-    NetworkService
-    Queue         *Queue
-    Buffer        []byte
-    EventsChannel chan *Event
+	NetworkService
+	Queue         *Queue
+	Buffer        []byte
+	EventsChannel chan *Event
 }
 
 // NewEventsHandler initializes an EventsHandler.
 func NewEventsHandler() *EventsHandler {
-    return &EventsHandler{
-        NetworkService: *NewNetworkService("EventsHandler"),
-        Queue:          NewQueue(EVENTS_QUEUE_SIZE),
-        EventsChannel:  make(chan *Event),
-    }
+	return &EventsHandler{
+		NetworkService: *NewNetworkService("EventsHandler"),
+		Queue:          NewQueue(EVENTS_QUEUE_SIZE),
+		EventsChannel:  make(chan *Event),
+	}
 }
 
 // NewEvent initializes an event from it's component
 func NewEvent(from string, sent_on int64, received_on int64, event_type string) *Event {
-    return &Event{
-        From: from,
-        SentOn: sent_on,
-        ReceivedOn: received_on,
-        Type: event_type,
-    }
+	return &Event{
+		From:       from,
+		SentOn:     sent_on,
+		ReceivedOn: received_on,
+		Type:       event_type,
+	}
 }
 
 // NewEventFromRaw initializes an Event from it's raw representation
 // which MSG_DELIMITER has been removed from.
 func NewEventFromRaw(raw string) (*Event, error) {
-    event := new(Event)
-    err := event.FromRaw(raw)
-    if err != nil {
-        return nil, err
-    }
+	event := new(Event)
+	err := event.FromRaw(raw)
+	if err != nil {
+		return nil, err
+	}
 
-    return event, nil
+	return event, nil
 }
 
 // FromRaw instantiates and returns an initialized Event
@@ -64,25 +64,25 @@ func NewEventFromRaw(raw string) (*Event, error) {
 // based on the MSG_DELIMITER and discards it, the method artificially
 // restores the MSG_DELIMITER in Event.raw attribute.
 func (e *Event) FromRaw(raw string) error {
-    e.raw = raw + MSG_DELIMITER // Keep track of the raw version with MSG_DELIMITER
-    parts := strings.Split(strings.Trim(raw, MSG_DELIMITER), string(EVENT_PARAMS_SEPARATOR))
+	e.raw = raw + MSG_DELIMITER // Keep track of the raw version with MSG_DELIMITER
+	parts := strings.Split(strings.Trim(raw, MSG_DELIMITER), string(EVENT_PARAMS_SEPARATOR))
 
-    if len(parts) == 3 {
-        e.From = parts[0]
-        e.ReceivedOn = time.Now().Unix()
-        e.Type = parts[2]
+	if len(parts) == 3 {
+		e.From = parts[0]
+		e.ReceivedOn = time.Now().Unix()
+		e.Type = parts[2]
 
-        sent_on, err := strconv.Atoi(parts[1])
-        if err != nil {
-            return errors.New(fmt.Sprintf("[Event.FromRaw] Couldn't parse timestamp: %s", err))
-        } else {
-            e.SentOn = int64(sent_on)
-        }
-    } else {
-        return errors.New(fmt.Sprintf("[%s.FromRaw] Incomplete event received: %s", "Event", e.raw))
-    }
+		sent_on, err := strconv.Atoi(parts[1])
+		if err != nil {
+			return errors.New(fmt.Sprintf("[Event.FromRaw] Couldn't parse timestamp: %s", err))
+		} else {
+			e.SentOn = int64(sent_on)
+		}
+	} else {
+		return errors.New(fmt.Sprintf("[%s.FromRaw] Incomplete event received: %s", "Event", e.raw))
+	}
 
-    return nil
+	return nil
 }
 
 // Serve should be run as a long-running goroutine.
@@ -90,32 +90,32 @@ func (e *Event) FromRaw(raw string) error {
 // new connexions sent through new_sources channel, and eventually
 // starts an HandleEvents goroutine to process new incoming events.
 func (m *EventsHandler) Serve() {
-    defer m.waitGroup.Done()
-    l4g.Info("Events source ready for the flow")
+	defer m.waitGroup.Done()
+	l4g.Info("Events source ready for the flow")
 
-    // Channels dedicated to handle the sources and events
-    // stream processing goroutines state
-    source_state := make(chan bool)
-    events_state := make(chan bool)
-    new_sources := make(chan *net.TCPConn)
-    m.waitGroup.Add(1)
-    go m.HandleConnexion(source_state, new_sources)
+	// Channels dedicated to handle the sources and events
+	// stream processing goroutines state
+	source_state := make(chan bool)
+	events_state := make(chan bool)
+	new_sources := make(chan *net.TCPConn)
+	m.waitGroup.Add(1)
+	go m.HandleConnexion(source_state, new_sources)
 
-    for {
-        select {
-        // If channel has been closed, or a shutdown
-        // signal has been sent, set sync as done
-        // and goroutine ready to be collected
-        case <-m.ch:
-            close(source_state)
-            close(events_state)
-            return
-        // Otherwise, process the events source connection and events
-        case new_source := <-new_sources:
-            m.waitGroup.Add(1)
-            go m.HandleEvents(events_state, new_source)
-        }
-    }
+	for {
+		select {
+		// If channel has been closed, or a shutdown
+		// signal has been sent, set sync as done
+		// and goroutine ready to be collected
+		case <-m.ch:
+			close(source_state)
+			close(events_state)
+			return
+		// Otherwise, process the events source connection and events
+		case new_source := <-new_sources:
+			m.waitGroup.Add(1)
+			go m.HandleEvents(events_state, new_source)
+		}
+	}
 }
 
 // HandleConnexion should be used as a long-running goroutine to listen
@@ -124,27 +124,27 @@ func (m *EventsHandler) Serve() {
 // sources channel.
 // Anytime HandleConnexion can be stoppped by closing it's state channel.
 func (m *EventsHandler) HandleConnexion(state chan bool, sources chan *net.TCPConn) {
-    defer m.waitGroup.Done()
+	defer m.waitGroup.Done()
 
-    for {
-        select {
-        case <-state:
-            return
-        default:
-            // Awainting for the events source to connect
-            m.Socket.SetDeadline(time.Now().Add(time.Duration(EVENT_REG_CONN_TIMEOUT) * time.Second))
-            source, err := m.Socket.AcceptTCP()
-            if err != nil {
-                if opErr, ok := err.(*net.OpError); ok && opErr.Timeout() {
-                    continue
-                }
-                l4g.Error(fmt.Sprintf("[%s.HandleConnexion] %s", m.name, err))
-                return
-            }
+	for {
+		select {
+		case <-state:
+			return
+		default:
+			// Awainting for the events source to connect
+			m.Socket.SetDeadline(time.Now().Add(time.Duration(EVENT_REG_CONN_TIMEOUT) * time.Second))
+			source, err := m.Socket.AcceptTCP()
+			if err != nil {
+				if opErr, ok := err.(*net.OpError); ok && opErr.Timeout() {
+					continue
+				}
+				l4g.Error(fmt.Sprintf("[%s.HandleConnexion] %s", m.name, err))
+				return
+			}
 
-            sources <- source
-        }
-    }
+			sources <- source
+		}
+	}
 }
 
 // HandleEvents should be run as a long-running goroutine to listen
@@ -153,89 +153,89 @@ func (m *EventsHandler) HandleConnexion(state chan bool, sources chan *net.TCPCo
 // extracts the message from the buffer, instantiates Events,
 // and pushes them to the PriorityQueue.
 func (m *EventsHandler) HandleEvents(events_state chan bool, source *net.TCPConn) {
-    defer m.waitGroup.Done()
-    defer source.Close()
+	defer m.waitGroup.Done()
+	defer source.Close()
 
-    for {
-        select {
-        case <-events_state:
-            return
-        default:
-            socket_input := make([]byte, EVENTS_FLOW_BUF_SIZE)
+	for {
+		select {
+		case <-events_state:
+			return
+		default:
+			socket_input := make([]byte, EVENTS_FLOW_BUF_SIZE)
 
-            source.SetDeadline(time.Now().Add(time.Duration(EVENT_FLOW_TIMEOUT) * time.Second))
-            // Await for client id to be sent
-            read_len, err := source.Read(socket_input)
-            if err != nil {
-                if opErr, ok := err.(*net.OpError); ok && opErr.Timeout() {
-                    continue
-                }
-                l4g.Error(fmt.Sprintf("[%s.HandleEvents] Events source connexion closed", m.name))
-                return
-            }
+			source.SetDeadline(time.Now().Add(time.Duration(EVENT_FLOW_TIMEOUT) * time.Second))
+			// Await for client id to be sent
+			read_len, err := source.Read(socket_input)
+			if err != nil {
+				if opErr, ok := err.(*net.OpError); ok && opErr.Timeout() {
+					continue
+				}
+				l4g.Error(fmt.Sprintf("[%s.HandleEvents] Events source connexion closed", m.name))
+				return
+			}
 
-            // In order to protect the events splitted accross two
-            // socket read buffers, we copy the eventual rest and the
-            // newly received data into a new buffer removing zero
-            // bytes from the actual socket buffer
-            data := make([]byte, read_len+len(m.Buffer))
-            copy(data, m.Buffer)
-            copy(data[len(m.Buffer):], socket_input[:read_len])
-            m.Buffer = []byte{} // reinitialize to empty
+			// In order to protect the events splitted accross two
+			// socket read buffers, we copy the eventual rest and the
+			// newly received data into a new buffer removing zero
+			// bytes from the actual socket buffer
+			data := make([]byte, read_len+len(m.Buffer))
+			copy(data, m.Buffer)
+			copy(data[len(m.Buffer):], socket_input[:read_len])
+			m.Buffer = []byte{} // reinitialize to empty
 
-            // Was the socket buffer ended with an incomplete
-            // event message? And was the actual content of buffer
-            // ended with the msg delimiter?
-            incomplete := incompleteEventMessage(socket_input)
-            backslash_ended := backslashEndedEventMessage(data)
+			// Was the socket buffer ended with an incomplete
+			// event message? And was the actual content of buffer
+			// ended with the msg delimiter?
+			incomplete := incompleteEventMessage(socket_input)
+			backslash_ended := backslashEndedEventMessage(data)
 
-            // extract events from the input data
-            items := strings.Split(string(data), MSG_DELIMITER)
+			// extract events from the input data
+			items := strings.Split(string(data), MSG_DELIMITER)
 
-            // If socket buffer was ended with an incomplete message
-            // push the rest in the EventsHandler buffer, and remove
-            // last event extracted as it is incomplete.
-            // Else, if the last event found was actually ended with
-            // MSG_DELIMITER, strings.Split will return an empty string
-            // elem after it, so let's remove it.
-            if incomplete {
-                m.Buffer = []byte(items[len(items) - 1])
-                items = items[:len(items) - 1]
-            } else if backslash_ended {
-                items = items[:len(items) - 1]
-            }
+			// If socket buffer was ended with an incomplete message
+			// push the rest in the EventsHandler buffer, and remove
+			// last event extracted as it is incomplete.
+			// Else, if the last event found was actually ended with
+			// MSG_DELIMITER, strings.Split will return an empty string
+			// elem after it, so let's remove it.
+			if incomplete {
+				m.Buffer = []byte(items[len(items)-1])
+				items = items[:len(items)-1]
+			} else if backslash_ended {
+				items = items[:len(items)-1]
+			}
 
-            go m.PushEventsToQueue(items)
-        }
-    }
+			go m.PushEventsToQueue(items)
+		}
+	}
 }
 
 // PushEventsToQueue adds a list of Event instances to
 // the EventsHandler PriorityQueue.
 func (m *EventsHandler) PushEventsToQueue(events []string) {
-    for _, event := range events {
-        event, err := NewEventFromRaw(event)
-        if err != nil {
-            l4g.Error(fmt.Sprintf("[%s.PushEventsToQueue] %s", m.name, err))
-            continue
-        }
+	for _, event := range events {
+		event, err := NewEventFromRaw(event)
+		if err != nil {
+			l4g.Error(fmt.Sprintf("[%s.PushEventsToQueue] %s", m.name, err))
+			continue
+		}
 
-        l4g.Info(fmt.Sprintf("[%s.PushEventsToQueue] %s inserted in queue", m.name, event))
-        m.Queue.Push(event)
+		l4g.Info(fmt.Sprintf("[%s.PushEventsToQueue] %s inserted in queue", m.name, event))
+		m.Queue.Push(event)
 
-        // Send event in events channel for listener
-        // to be notified of the event pushed to queue
-        // the forwarder for example.
-        go func() { m.EventsChannel <- event }()
-    }
+		// Send event in events channel for listener
+		// to be notified of the event pushed to queue
+		// the forwarder for example.
+		go func() { m.EventsChannel <- event }()
+	}
 }
 
 // incompleteEventMessage checks if the EventsHandler input socket
 // read message is incomplete (non-terminated by MSG_DELIMITER)
 func incompleteEventMessage(socket_buffer []byte) bool {
-    return !bytes.HasSuffix(socket_buffer, []byte(MSG_DELIMITER)) && socket_buffer[len(socket_buffer)-1] != byte(0)
+	return !bytes.HasSuffix(socket_buffer, []byte(MSG_DELIMITER)) && socket_buffer[len(socket_buffer)-1] != byte(0)
 }
 
 func backslashEndedEventMessage(data []byte) bool {
-    return bytes.Compare(data[len(data)-len(MSG_DELIMITER):], []byte(MSG_DELIMITER)) == 0
+	return bytes.Compare(data[len(data)-len(MSG_DELIMITER):], []byte(MSG_DELIMITER)) == 0
 }

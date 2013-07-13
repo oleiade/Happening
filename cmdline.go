@@ -3,13 +3,13 @@ package happening
 import "flag"
 
 type Cmdline struct {
-	DaemonMode  *bool
-	ConfigFile  *string
-	PidFile     *string
-	LogFile     *string
-	LogLevel    *string
-	Host        *string
-	EventsPort  *string
+	DaemonMode *bool
+	ConfigFile *string
+	PidFile    *string
+	LogFile    *string
+	LogLevel   *string
+	Host       *string
+	EventsPort *string
 }
 
 func (c *Cmdline) ParseArgs() {
