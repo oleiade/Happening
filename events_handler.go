@@ -79,40 +79,45 @@ func (m *EventsHandler) HandleEvents(events_state chan bool, source *net.TCPConn
                 return
             }
 
-            // In order to protect the events splitted accross two
-            // socket read buffers, we copy the eventual rest and the
-            // newly received data into a new buffer removing zero
-            // bytes from the actual socket buffer
-            data := make([]byte, read_len+len(m.Buffer))
-            copy(data, m.Buffer)
-            copy(data[len(m.Buffer):], socket_input[:read_len])
-            m.Buffer = []byte{} // reinitialize to empty
-
-            // Was the socket buffer ended with an incomplete
-            // event message? And was the actual content of buffer
-            // ended with the msg delimiter?
-            incomplete := incompleteEventMessage(socket_input)
-            backslash_ended := backslashEndedEventMessage(data)
-
-            // extract events from the input data
-            items := strings.Split(string(data), MSG_DELIMITER)
-
-            // If socket buffer was ended with an incomplete message
-            // push the rest in the EventsHandler buffer, and remove
-            // last event extracted as it is incomplete.
-            // Else, if the last event found was actually ended with
-            // MSG_DELIMITER, strings.Split will return an empty string
-            // elem after it, so let's remove it.
-            if incomplete {
-                m.Buffer = []byte(items[len(items)-1])
-                items = items[:len(items)-1]
-            } else if backslash_ended {
-                items = items[:len(items)-1]
-            }
-
+            items := m.ExtractEventsFromSocketInput(socket_input, read_len)
             go m.PushEventsToQueue(items)
         }
     }
+}
+
+func (m *EventsHandler) ExtractEventsFromSocketInput(input []byte, read_len int) []string {
+    // In order to protect the events splitted accross two
+    // socket read buffers, we copy the eventual rest and the
+    // newly received data into a new buffer removing zero
+    // bytes from the actual socket buffer
+    data := make([]byte, read_len+len(m.Buffer))
+    copy(data, m.Buffer)
+    copy(data[len(m.Buffer):], input[:read_len])
+    m.Buffer = []byte{} // reinitialize to empty
+
+    // Was the socket buffer ended with an incomplete
+    // event message? And was the actual content of buffer
+    // ended with the msg delimiter?
+    is_incomplete := !bytes.HasSuffix(input, []byte(MSG_DELIMITER)) && input[len(input)-1] != byte(0)
+    is_backslash_ended := bytes.Compare(data[len(data)-len(MSG_DELIMITER):], []byte(MSG_DELIMITER)) == 0
+
+    // extract events from the input data
+    items := strings.Split(string(data), MSG_DELIMITER)
+
+    // If socket buffer was ended with an incomplete message
+    // push the rest in the EventsHandler buffer, and remove
+    // last event extracted as it is incomplete.
+    // Else, if the last event found was actually ended with
+    // MSG_DELIMITER, strings.Split will return an empty string
+    // elem after it, so let's remove it.
+    if is_incomplete {
+        m.Buffer = []byte(items[len(items)-1])
+        items = items[:len(items)-1]
+    } else if is_backslash_ended {
+        items = items[:len(items)-1]
+    }
+
+    return items
 }
 
 // PushEventsToQueue adds a list of Event instances to
@@ -133,14 +138,4 @@ func (m *EventsHandler) PushEventsToQueue(events []string) {
         // the forwarder for example.
         go func() { m.EventsChannel <- event }()
     }
-}
-
-// incompleteEventMessage checks if the EventsHandler input socket
-// read message is incomplete (non-terminated by MSG_DELIMITER)
-func incompleteEventMessage(socket_buffer []byte) bool {
-    return !bytes.HasSuffix(socket_buffer, []byte(MSG_DELIMITER)) && socket_buffer[len(socket_buffer)-1] != byte(0)
-}
-
-func backslashEndedEventMessage(data []byte) bool {
-    return bytes.Compare(data[len(data)-len(MSG_DELIMITER):], []byte(MSG_DELIMITER)) == 0
 }
