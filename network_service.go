@@ -16,6 +16,7 @@ type NetworkService struct {
     IncomingConnexions  chan *net.TCPConn
 }
 
+
 // NewNetworkService builds a new NetworkService instance. In order
 // to avoid possible errors at initialization (and not to pollute the
 // initializer) Service attribute is intentionaly set to nil.
@@ -60,6 +61,7 @@ func (ns *NetworkService) Start(host string, port string) (err error) {
 // Blocks until the network service is really stopped.
 func (ns *NetworkService) Stop() {
     close(ns.ch)
+    close(ns.ConnexionsLifeline)
     ns.waitGroup.Wait()
     ns.Socket.Close()
 }
@@ -75,6 +77,7 @@ func (ns *NetworkService) HandleConnexions() {
     for {
         select {
         case <- ns.ConnexionsLifeline:
+            close(ns.IncomingConnexions)
             return
         default:
             // Awainting for the events source to connect
