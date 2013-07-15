@@ -48,6 +48,7 @@ else ifneq ($(HAPPENING_DIR), $(realpath $(HAPPENING_DIR)))
 endif
 
 test: all
+	@(go get "github.com/stretchr/testify/assert")
 	@(cd $(HAPPENING_DIR); sudo -E go test $(GO_OPTIONS))
 
 fmt:
