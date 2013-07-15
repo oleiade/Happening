@@ -2,6 +2,7 @@ package happening
 
 import (
 	"bytes"
+	"path/filepath"
 	leveldb "github.com/jmhodges/levigo"
 )
 
@@ -11,7 +12,7 @@ type LeveldbBackend struct {
 }
 
 // NewLeveldbBackend creates a new leveldb database connector.
-func NewLeveldbBackend(dbfile string) (backend *LeveldbBackend, err error) {
+func NewLeveldbBackend(storage_path string) (backend *LeveldbBackend, err error) {
 	// Set up backend to use a lru cache and
 	// create store files if not existing yet
 	opts := leveldb.NewOptions()
@@ -19,7 +20,7 @@ func NewLeveldbBackend(dbfile string) (backend *LeveldbBackend, err error) {
 	opts.SetCreateIfMissing(true)
 
 	// Open database file
-	db, err := leveldb.Open(dbfile, opts)
+	db, err := leveldb.Open(filepath.Join(storage_path, "data"), opts)
 	if err != nil {
 		return nil, err
 	}

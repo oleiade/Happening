@@ -30,6 +30,7 @@ const (
 // Configuration fallback constants
 const (
 	DEFAULT_CONFIG_FILE = "/etc/happening/happening.conf"
+	DEFAULT_STORAGE_PATH = "/tmp"
 	DEFAULT_LOG_FILE    = "/tmp/happening.log"
 	DEFAULT_PID_FILE    = "/tmp/happening.pid"
 	DEFAULT_TRANSPORT   = "tcp"
