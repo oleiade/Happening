@@ -15,11 +15,11 @@ type Config struct {
 
 func NewConfig() *Config {
 	return &Config{
-		Daemon:   false,
-		LogLevel: "INFO",
-		LogFile:  "/var/log/happening.log",
-		Pidfile:  "/var/run/happening.pid",
-		StoragePath: "/var/lib/happening/",
+		Daemon:   DEFAULT_DAEMON_MODE,
+		LogLevel: DEFAULT_LOG_LEVEL,
+		LogFile:  DEFAULT_LOG_FILE,
+		Pidfile:  DEFAULT_PID_FILE,
+		StoragePath: DEFAULT_STORAGE_PATH,
 	}
 }
 
