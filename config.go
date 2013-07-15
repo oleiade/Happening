@@ -6,10 +6,11 @@ import (
 )
 
 type Config struct {
-	Daemon   bool   `ini:"daemonize"`
-	LogFile  string `ini:"log_file"`
-	LogLevel string `ini:"log_level"`
-	Pidfile  string `ini:"pidfile"`
+	Daemon   		bool   `ini:"daemonize"`
+	LogFile  		string `ini:"log_file"`
+	LogLevel 		string `ini:"log_level"`
+	Pidfile  		string `ini:"pidfile"`
+	StoragePath		string `ini:"storage_path"`
 }
 
 func NewConfig() *Config {
@@ -18,6 +19,7 @@ func NewConfig() *Config {
 		LogLevel: "INFO",
 		LogFile:  "/var/log/happening.log",
 		Pidfile:  "/var/run/happening.pid",
+		StoragePath: "/var/lib/happening/",
 	}
 }
 
