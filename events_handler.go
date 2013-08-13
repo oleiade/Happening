@@ -32,7 +32,7 @@ func NewEventsHandler() *EventsHandler {
 func (m *EventsHandler) Serve() {
     defer m.waitGroup.Done()
     l4g.Info("Events source ready for the flow")
-    events_state := make(chan bool)
+    eventsState := make(chan bool)
 
     for {
         select {
@@ -41,12 +41,12 @@ func (m *EventsHandler) Serve() {
         // and goroutine ready to be collected
         case <- m.ch:
             close(m.ConnexionsLifeline)
-            close(events_state)
+            close(eventsState)
             return
         // Otherwise, process the events source connection and events
-        case new_source := <- m.IncomingConnexions:
+        case newSource := <- m.IncomingConnexions:
             m.waitGroup.Add(1)
-            go m.HandleEvents(events_state, new_source)
+            go m.HandleEvents(eventsState, newSource)
         }
     }
 }
@@ -57,20 +57,20 @@ func (m *EventsHandler) Serve() {
 // It reads on the socket, maintain the EventsHandler buffer,
 // extracts the message from the buffer, instantiates Events,
 // and pushes them to the PriorityQueue.
-func (m *EventsHandler) HandleEvents(events_state chan bool, source *net.TCPConn) {
+func (m *EventsHandler) HandleEvents(eventsState chan bool, source *net.TCPConn) {
     defer m.waitGroup.Done()
     defer source.Close()
 
     for {
         select {
-        case <-events_state:
+        case <-eventsState:
             return
         default:
-            socket_input := make([]byte, EVENTS_FLOW_BUF_SIZE)
+            socketInput := make([]byte, EVENTS_FLOW_BUF_SIZE)
 
             source.SetDeadline(time.Now().Add(time.Duration(EVENT_FLOW_TIMEOUT) * time.Second))
             // Await for client id to be sent
-            read_len, err := source.Read(socket_input)
+            readLen, err := source.Read(socketInput)
             if err != nil {
                 if opErr, ok := err.(*net.OpError); ok && opErr.Timeout() {
                     continue
@@ -79,27 +79,27 @@ func (m *EventsHandler) HandleEvents(events_state chan bool, source *net.TCPConn
                 return
             }
 
-            items := m.ExtractEventsFromSocketInput(socket_input, read_len)
+            items := m.ExtractEventsFromSocketInput(socketInput, readLen)
             go m.PushEventsToQueue(items)
         }
     }
 }
 
-func (m *EventsHandler) ExtractEventsFromSocketInput(input []byte, read_len int) []string {
+func (m *EventsHandler) ExtractEventsFromSocketInput(input []byte, readLen int) []string {
     // In order to protect the events splitted accross two
     // socket read buffers, we copy the eventual rest and the
     // newly received data into a new buffer removing zero
     // bytes from the actual socket buffer
-    data := make([]byte, read_len+len(m.Buffer))
+    data := make([]byte, readLen+len(m.Buffer))
     copy(data, m.Buffer)
-    copy(data[len(m.Buffer):], input[:read_len])
+    copy(data[len(m.Buffer):], input[:readLen])
     m.Buffer = []byte{} // reinitialize to empty
 
     // Was the socket buffer ended with an incomplete
     // event message? And was the actual content of buffer
     // ended with the msg delimiter?
-    is_incomplete := !bytes.HasSuffix(input, []byte(MSG_DELIMITER)) && input[len(input)-1] != byte(0)
-    is_backslash_ended := bytes.Compare(data[len(data)-len(MSG_DELIMITER):], []byte(MSG_DELIMITER)) == 0
+    isIncomplete := !bytes.HasSuffix(input, []byte(MSG_DELIMITER)) && input[len(input)-1] != byte(0)
+    isBackslashEnded := bytes.Compare(data[len(data)-len(MSG_DELIMITER):], []byte(MSG_DELIMITER)) == 0
 
     // extract events from the input data
     items := strings.Split(string(data), MSG_DELIMITER)
@@ -110,10 +110,10 @@ func (m *EventsHandler) ExtractEventsFromSocketInput(input []byte, read_len int)
     // Else, if the last event found was actually ended with
     // MSG_DELIMITER, strings.Split will return an empty string
     // elem after it, so let's remove it.
-    if is_incomplete {
+    if isIncomplete {
         m.Buffer = []byte(items[len(items)-1])
         items = items[:len(items)-1]
-    } else if is_backslash_ended {
+    } else if isBackslashEnded {
         items = items[:len(items)-1]
     }
 

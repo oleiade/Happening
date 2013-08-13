@@ -12,7 +12,7 @@ type LeveldbBackend struct {
 }
 
 // NewLeveldbBackend creates a new leveldb database connector.
-func NewLeveldbBackend(storage_path string) (backend *LeveldbBackend, err error) {
+func NewLeveldbBackend(storagePath string) (backend *LeveldbBackend, err error) {
 	// Set up backend to use a lru cache and
 	// create store files if not existing yet
 	opts := leveldb.NewOptions()
@@ -20,7 +20,7 @@ func NewLeveldbBackend(storage_path string) (backend *LeveldbBackend, err error)
 	opts.SetCreateIfMissing(true)
 
 	// Open database file
-	db, err := leveldb.Open(filepath.Join(storage_path, "data"), opts)
+	db, err := leveldb.Open(filepath.Join(storagePath, "data"), opts)
 	if err != nil {
 		return nil, err
 	}
@@ -59,9 +59,9 @@ func (backend *LeveldbBackend) MGet(keys [][]byte) (values [][]byte, err error) 
 	var data [][]byte = make([][]byte, len(keys))
 
 	// Read over a Db read-only snapshot
-	read_options := leveldb.NewReadOptions()
+	readOptions := leveldb.NewReadOptions()
 	snapshot := backend.Db.NewSnapshot()
-	read_options.SetSnapshot(snapshot)
+	readOptions.SetSnapshot(snapshot)
 
 	if len(keys) > 0 {
 		// Extract start -> end key range to extract
@@ -71,13 +71,13 @@ func (backend *LeveldbBackend) MGet(keys [][]byte) (values [][]byte, err error) 
 
 		// Keep track of the input keys index
 		// in order to output results in order
-		keys_index := make(map[string]int)
+		keysIndex := make(map[string]int)
 		for index, element := range keys {
-			keys_index[string(element)] = index
+			keysIndex[string(element)] = index
 		}
 
 		// Fetch values using an iterator
-		it := backend.Db.NewIterator(read_options)
+		it := backend.Db.NewIterator(readOptions)
 		defer it.Close()
 		it.Seek([]byte(start))
 
@@ -86,7 +86,7 @@ func (backend *LeveldbBackend) MGet(keys [][]byte) (values [][]byte, err error) 
 				break
 			}
 
-			if index, present := keys_index[string(it.Key())]; present {
+			if index, present := keysIndex[string(it.Key())]; present {
 				data[index] = it.Value()
 			}
 		}

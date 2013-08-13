@@ -19,12 +19,12 @@ type Event struct {
 }
 
 // NewEvent initializes an event from it's component
-func NewEvent(from string, sent_on int64, received_on int64, event_type string) *Event {
+func NewEvent(from string, sentOn int64, receivedOn int64, eventType string) *Event {
 	return &Event{
 		From:       from,
-		SentOn:     sent_on,
-		ReceivedOn: received_on,
-		Type:       event_type,
+		SentOn:     sentOn,
+		ReceivedOn: receivedOn,
+		Type:       eventType,
 	}
 }
 
@@ -53,11 +53,11 @@ func (e *Event) FromRaw(raw string) error {
 		e.ReceivedOn = time.Now().Unix()
 		e.Type = parts[2]
 
-		sent_on, err := strconv.Atoi(parts[1])
+		sentOn, err := strconv.Atoi(parts[1])
 		if err != nil {
 			return errors.New(fmt.Sprintf("[Event.FromRaw] Couldn't parse timestamp: %s", err))
 		} else {
-			e.SentOn = int64(sent_on)
+			e.SentOn = int64(sentOn)
 		}
 	} else {
 		return errors.New(fmt.Sprintf("[%s.FromRaw] Incomplete event received: %s", "Event", e.raw))

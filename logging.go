@@ -23,22 +23,22 @@ var LogLevels = map[string]l4g.Level{
 
 // SetupLogger function ensures logging file exists, and
 // is writable, and sets up a log4go filter accordingly
-func SetupFileLogger(logger_name string, log_level string, log_file string) error {
-	dir := filepath.Dir(log_file)
+func SetupFileLogger(loggerName string, logLevel string, logFile string) error {
+	dir := filepath.Dir(logFile)
 	_, err := os.Stat(dir)
 	if err != nil {
 		return errors.New(fmt.Sprintf("[ERROR] Facteur can't open logging directory for writing. Reason: '%s'", err))
 	}
 
 	// check file permissions are correct
-	_, err = os.Create(log_file)
+	_, err = os.Create(logFile)
 	if err != nil {
 		return errors.New(fmt.Sprintf("[ERROR] Make sure %s is writable to the user launching facteur", dir))
 	}
 
-	l4g.AddFilter(logger_name,
-		LogLevels[log_level],
-		l4g.NewFileLogWriter(log_file, false))
+	l4g.AddFilter(loggerName,
+		LogLevels[logLevel],
+		l4g.NewFileLogWriter(logFile, false))
 
 	return nil
 }
