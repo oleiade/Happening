@@ -2,8 +2,8 @@ package happening
 
 import (
 	"bytes"
-	"path/filepath"
 	leveldb "github.com/jmhodges/levigo"
+	"path/filepath"
 )
 
 type LeveldbBackend struct {

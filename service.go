@@ -13,7 +13,6 @@ type Service struct {
 	waitGroup *sync.WaitGroup
 }
 
-
 // NewService builds a new Service instance. It instantiates
 // a channel to the running service, and bootstraps a sync.waitGroup
 // with an element marked as running.

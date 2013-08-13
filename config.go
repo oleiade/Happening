@@ -6,19 +6,19 @@ import (
 )
 
 type Config struct {
-	Daemon   		bool   `ini:"daemonize"`
-	LogFile  		string `ini:"log_file"`
-	LogLevel 		string `ini:"log_level"`
-	Pidfile  		string `ini:"pidfile"`
-	StoragePath		string `ini:"storage_path"`
+	Daemon      bool   `ini:"daemonize"`
+	LogFile     string `ini:"log_file"`
+	LogLevel    string `ini:"log_level"`
+	Pidfile     string `ini:"pidfile"`
+	StoragePath string `ini:"storage_path"`
 }
 
 func NewConfig() *Config {
 	return &Config{
-		Daemon:   DEFAULT_DAEMON_MODE,
-		LogLevel: DEFAULT_LOG_LEVEL,
-		LogFile:  DEFAULT_LOG_FILE,
-		Pidfile:  DEFAULT_PID_FILE,
+		Daemon:      DEFAULT_DAEMON_MODE,
+		LogLevel:    DEFAULT_LOG_LEVEL,
+		LogFile:     DEFAULT_LOG_FILE,
+		Pidfile:     DEFAULT_PID_FILE,
 		StoragePath: DEFAULT_STORAGE_PATH,
 	}
 }

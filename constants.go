@@ -29,13 +29,13 @@ const (
 
 // Configuration fallback constants
 const (
-	DEFAULT_CONFIG_FILE = "/etc/happening/happening.conf"
+	DEFAULT_CONFIG_FILE  = "/etc/happening/happening.conf"
 	DEFAULT_STORAGE_PATH = "/tmp"
-	DEFAULT_LOG_FILE    = "/tmp/happening.log"
-	DEFAULT_PID_FILE    = "/tmp/happening.pid"
-	DEFAULT_TRANSPORT   = "tcp"
-	DEFAULT_LOG_LEVEL   = "INFO"
-	DEFAULT_DAEMON_MODE = false
-	DEFAULT_HOST        = "localhost"
-	DEFAULT_EVENTS_PORT = ":4040"
+	DEFAULT_LOG_FILE     = "/tmp/happening.log"
+	DEFAULT_PID_FILE     = "/tmp/happening.pid"
+	DEFAULT_TRANSPORT    = "tcp"
+	DEFAULT_LOG_LEVEL    = "INFO"
+	DEFAULT_DAEMON_MODE  = false
+	DEFAULT_HOST         = "localhost"
+	DEFAULT_EVENTS_PORT  = ":4040"
 )
