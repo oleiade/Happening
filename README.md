@@ -1,4 +1,4 @@
-![Copyright (c) 2013, Laurene Boglio. All rights reserved.](https://dl.dropboxusercontent.com/u/2497327/happening_logo.svg)
+![Copyright (c) 2013, Laurene Boglio. All rights reserved.](https://dl.dropboxusercontent.com/u/2497327/Github/happening/happening-animation.gif)
 
 
 **Project under heavy development, not yet usable**
